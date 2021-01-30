@@ -1,0 +1,10 @@
+conda install gym[all]==0.18.0
+conda install numpy
+conda install pandas
+conda install keras
+conda install matplotlib
+# inoltre
+# pip install mujoco-py<2.0 ha la licenza a 30 giorni
+# sostituire quindi con
+pip install pybullet
+pip install pybulletgym

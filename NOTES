@@ -1,0 +1,13 @@
+30.1.2021
+---------
+
+mujoco ha la licenza a 30 giorni trial
+https://github.com/openai/mujoco-py#obtaining-the-binaries-and-license-key
+e va installata la 1.50
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/aldebaran/.mujoco/mjpro150/bin
+
+BYBULLET-GIM:
+https://github.com/bulletphysics/bullet3
+https://github.com/benelot/pybullet-gym
+https://gsurma.medium.com/cartpole-introduction-to-reinforcement-learning-ed0eb5b58288

@@ -1,8 +1,12 @@
+from typing import Dict, List, Tuple, Any
 import gym
 import numpy as np
 import pandas as pd
 from collections import deque
 import random
+import pathlib
+from argparse import ArgumentParser
+from loggers import logger_main, logger_mcts
 
 from keras import Sequential
 from keras.layers import Dense
@@ -11,9 +15,12 @@ from keras.optimizers import Adam
 from keras.losses import mean_squared_error
 from keras.models import load_model
 
-
 import pickle
 from matplotlib import pyplot as plt
+
+GYM_ENV = 'CartPole-v1'
+# GYM_ENV = 'InvertedDoublePendulum-v2'  # NO - problemi con licenza mucojo, uase pybullet-gym
+# GYM_ENV = 'InvertedDoublePendulumMuJoCoEnv-v0'
 
 
 class DQN:
@@ -44,8 +51,8 @@ class DQN:
         model.add(Dense(self.num_action_space, activation=linear))
 
         # Compile the model
-        model.compile(loss=mean_squared_error,optimizer=Adam(lr=self.lr))
-        print(model.summary())
+        model.compile(loss=mean_squared_error, optimizer=Adam(lr=self.lr))
+        logger_main.info(model.summary())
         return model
 
     def get_action(self, state):
@@ -100,7 +107,7 @@ class DQN:
             for step in range(num_steps):
                 env.render()
                 received_action = self.get_action(state)
-                # print("received_action:", received_action)
+                # logger_main.info("received_action:", received_action)
                 next_state, reward, done, info = env.step(received_action)
                 next_state = np.reshape(next_state, [1, self.num_observation_space])
                 # Store the experience in replay memory
@@ -122,9 +129,9 @@ class DQN:
             # Check for breaking condition
             last_rewards_mean = np.mean(self.rewards_list[-100:])
             if last_rewards_mean > 200 and can_stop:
-                print("DQN Training Complete...")
+                logger_main.info("DQN Training Complete...")
                 break
-            print(episode, "\t: Episode || Reward: ",reward_for_episode, "\t|| Average Reward: ",last_rewards_mean, "\t epsilon: ", self.epsilon )
+            logger_main.info(f"{episode} \t: Episode || Reward: {reward_for_episode} \t|| Average Reward: {last_rewards_mean} \t epsilon: {self.epsilon:.6f}")
 
     def update_counter(self):
         self.counter += 1
@@ -138,8 +145,8 @@ class DQN:
 def test_already_trained_model(trained_model):
     rewards_list = []
     num_test_episode = 100
-    env = gym.make("LunarLander-v2")
-    print("Starting Testing of the trained model...")
+    env = gym.make(GYM_ENV)
+    logger_main.info("Starting Testing of the trained model...")
 
     step_count = 1000
 
@@ -158,7 +165,7 @@ def test_already_trained_model(trained_model):
             if done:
                 break
         rewards_list.append(reward_for_episode)
-        print(test_episode, "\t: Episode || Reward: ", reward_for_episode)
+        logger_main.info(f"{test_episode} \t: Episode || Reward: {reward_for_episode}")
 
     return rewards_list
 
@@ -209,9 +216,9 @@ def plot_experiments(df, chart_name, title, x_axis_label, y_axis_label, y_limit)
     fig.savefig(chart_name)
 
 
-def run_experiment_for_gamma():
-    print('Running Experiment for gamma...')
-    env = gym.make('LunarLander-v2')
+def run_experiment_for_gamma(images_dir):
+    logger_main.info('Running Experiment for gamma...')
+    env = gym.make(GYM_ENV)
 
     # set seeds
     env.seed(21)
@@ -228,24 +235,25 @@ def run_experiment_for_gamma():
     for gamma_value in gamma_list:
         # save_dir = "hp_gamma_"+ str(gamma_value) + "_"
         model = DQN(env, lr, gamma_value, epsilon, epsilon_decay)
-        print("Training model for Gamma: {}".format(gamma_value))
+        logger_main.info(f"Training model for Gamma: {gamma_value}")
         model.train(training_episodes, False)
         rewards_list_for_gammas.append(model.rewards_list)
 
-    pickle.dump(rewards_list_for_gammas, open("rewards_list_for_gammas.p", "wb"))
-    rewards_list_for_gammas = pickle.load(open("rewards_list_for_gammas.p", "rb"))
+    pickle.dump(rewards_list_for_gammas, open(f"{GYM_ENV}_rewards_list_for_gammas.p", "wb"))
+    rewards_list_for_gammas = pickle.load(open(f"{GYM_ENV}_rewards_list_for_gammas.p", "rb"))
 
     gamma_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes + 1)))
     for i in range(len(gamma_list)):
         col_name = "gamma=" + str(gamma_list[i])
         gamma_rewards_pd[col_name] = rewards_list_for_gammas[i]
-    plot_experiments(gamma_rewards_pd, "Figure 4: Rewards per episode for different gamma values",
+    plot_experiments(gamma_rewards_pd,
+                     images_dir + "Figure 4: Rewards per episode for different gamma values",
                      "Figure 4: Rewards per episode for different gamma values", "Episodes", "Reward", (-600, 300))
 
 
-def run_experiment_for_lr():
-    print('Running Experiment for learning rate...')
-    env = gym.make('LunarLander-v2')
+def run_experiment_for_lr(images_dir):
+    logger_main.info('Running Experiment for learning rate...')
+    env = gym.make(GYM_ENV)
 
     # set seeds
     env.seed(21)
@@ -260,23 +268,25 @@ def run_experiment_for_lr():
     rewards_list_for_lrs = []
     for lr_value in lr_values:
         model = DQN(env, lr_value, gamma, epsilon, epsilon_decay)
-        print("Training model for LR: {}".format(lr_value))
+        logger_main.info(f"Training model for LR: {lr_value}")
         model.train(training_episodes, False)
         rewards_list_for_lrs.append(model.rewards_list)
 
-    pickle.dump(rewards_list_for_lrs, open("rewards_list_for_lrs.p", "wb"))
-    rewards_list_for_lrs = pickle.load(open("rewards_list_for_lrs.p", "rb"))
+    pickle.dump(rewards_list_for_lrs, open(f"{GYM_ENV}_rewards_list_for_lrs.p", "wb"))
+    rewards_list_for_lrs = pickle.load(open(f"{GYM_ENV}_rewards_list_for_lrs.p", "rb"))
 
     lr_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes + 1)))
     for i in range(len(lr_values)):
-        col_name = "lr="+ str(lr_values[i])
+        col_name = "lr=" + str(lr_values[i])
         lr_rewards_pd[col_name] = rewards_list_for_lrs[i]
-    plot_experiments(lr_rewards_pd, "Figure 3: Rewards per episode for different learning rates", "Figure 3: Rewards per episode for different learning rates", "Episodes", "Reward", (-2000, 300))
+    plot_experiments(lr_rewards_pd,
+                     images_dir + "Figure 3: Rewards per episode for different learning rates",
+                     "Figure 3: Rewards per episode for different learning rates", "Episodes", "Reward", (-2000, 300))
 
 
-def run_experiment_for_ed():
-    print('Running Experiment for epsilon decay...')
-    env = gym.make('LunarLander-v2')
+def run_experiment_for_ed(images_dir):
+    logger_main.info('Running Experiment for epsilon decay...')
+    env = gym.make(GYM_ENV)
 
     # set seeds
     env.seed(21)
@@ -291,24 +301,41 @@ def run_experiment_for_ed():
 
     rewards_list_for_ed = []
     for ed in ed_values:
-        save_dir = "hp_ed_"+ str(ed) + "_"
+        save_dir = "hp_ed_" + str(ed) + "_"
         model = DQN(env, lr, gamma, epsilon, ed)
-        print("Training model for ED: {}".format(ed))
+        logger_main.info("Training model for ED: {ed}")
         model.train(training_episodes, False)
         rewards_list_for_ed.append(model.rewards_list)
 
-    pickle.dump(rewards_list_for_ed, open("rewards_list_for_ed.p", "wb"))
-    rewards_list_for_ed = pickle.load(open("rewards_list_for_ed.p", "rb"))
+    pickle.dump(rewards_list_for_ed, open(f"{GYM_ENV}_rewards_list_for_ed.p", "wb"))
+    rewards_list_for_ed = pickle.load(open(f"{GYM_ENV}_rewards_list_for_ed.p", "rb"))
 
-    ed_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes+1)))
+    ed_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes + 1)))
     for i in range(len(ed_values)):
-        col_name = "epsilon_decay = "+ str(ed_values[i])
+        col_name = "epsilon_decay = " + str(ed_values[i])
         ed_rewards_pd[col_name] = rewards_list_for_ed[i]
-    plot_experiments(ed_rewards_pd, "Figure 5: Rewards per episode for different epsilon(ε) decay", "Figure 5: Rewards per episode for different epsilon(ε) decay values", "Episodes", "Reward", (-600, 300))
+    plot_experiments(ed_rewards_pd,
+                     images_dir + "Figure 5: Rewards per episode for different epsilon(ε) decay",
+                     "Figure 5: Rewards per episode for different epsilon(ε) decay values",
+                     "Episodes", "Reward", (-600, 300))
 
 
 if __name__ == '__main__':
-    env = gym.make('LunarLander-v2')
+    # arguments
+    parser: ArgumentParser = ArgumentParser()
+    parser.add_argument('--enable_train', action='store_true', default=False, help="If set, train")
+    # parse arguments
+    args = parser.parse_args()
+    args_dict: Dict[str, Any] = vars(args)
+    enable_train = args_dict['enable_train']
+
+    env = gym.make(GYM_ENV)
+
+    # Save Everything
+    save_dir = "./saved_models/" + GYM_ENV + "/"
+    images_dir = "./images/" + GYM_ENV + "/"
+    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(images_dir).mkdir(parents=True, exist_ok=True)
 
     # set seeds
     env.seed(21)
@@ -320,33 +347,37 @@ if __name__ == '__main__':
     epsilon_decay = 0.995
     gamma = 0.99
     training_episodes = 2000
-    print('St')
-    model = DQN(env, lr, gamma, epsilon, epsilon_decay)
-    model.train(training_episodes, True)
+    if enable_train:
+        logger_main.info('Start train')
+        model = DQN(env, lr, gamma, epsilon, epsilon_decay)
+        model.train(training_episodes, True)
+        # Save trained model
+        model.save(save_dir + f"{GYM_ENV}_trained_model.h5")
+        # Save Rewards list
+        pickle.dump(model.rewards_list, open(save_dir + f"{GYM_ENV}_train_rewards_list.p", "wb"))
+        logger_main.info('End train')
 
-    # Save Everything
-    save_dir = "saved_models"
-    # Save trained model
-    model.save(save_dir + "trained_model.h5")
-
-    # Save Rewards list
-    pickle.dump(model.rewards_list, open(save_dir + "train_rewards_list.p", "wb"))
-    rewards_list = pickle.load(open(save_dir + "train_rewards_list.p", "rb"))
+    logger_main.info('Start testing')
+    rewards_list = pickle.load(open(save_dir + f"{GYM_ENV}_train_rewards_list.p", "rb"))
 
     # plot reward in graph
     reward_df = pd.DataFrame(rewards_list)
-    plot_df(reward_df, "Figure 1: Reward for each training episode", "Reward for each training episode", "Episode","Reward")
+    plot_df(reward_df,
+            images_dir + "Figure 1: Reward for each training episode",
+            "Reward for each training episode", "Episode", "Reward")
 
     # Test the model
-    trained_model = load_model(save_dir + "trained_model.h5")
+    trained_model = load_model(save_dir + f"{GYM_ENV}_trained_model.h5")
     test_rewards = test_already_trained_model(trained_model)
-    pickle.dump(test_rewards, open(save_dir + "test_rewards.p", "wb"))
-    test_rewards = pickle.load(open(save_dir + "test_rewards.p", "rb"))
+    pickle.dump(test_rewards, open(save_dir + f"{GYM_ENV}_test_rewards.p", "wb"))
+    test_rewards = pickle.load(open(save_dir + f"{GYM_ENV}_test_rewards.p", "rb"))
 
-    plot_df2(pd.DataFrame(test_rewards), "Figure 2: Reward for each testing episode","Reward for each testing episode", "Episode", "Reward")
-    print("Training and Testing Completed...!")
+    plot_df2(pd.DataFrame(test_rewards),
+             images_dir + "Figure 2: Reward for each testing episode",
+             "Reward for each testing episode", "Episode", "Reward")
+    logger_main.info("Training and Testing Completed...!")
 
     # Run experiments for hyper-parameter
-    run_experiment_for_lr()
-    run_experiment_for_ed()
-    run_experiment_for_gamma()
+    run_experiment_for_lr(images_dir)
+    run_experiment_for_ed(images_dir)
+    run_experiment_for_gamma(images_dir)
