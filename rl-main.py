@@ -131,7 +131,7 @@ class DQN:
             if last_rewards_mean > 200 and can_stop:
                 logger_main.info("DQN Training Complete...")
                 break
-            logger_main.info(f"{episode} \t: Episode || Reward: {reward_for_episode} \t|| Average Reward: {last_rewards_mean} \t epsilon: {self.epsilon:.6f}")
+            logger_main.info(f"{episode} \t: Episode || Reward: {reward_for_episode} \t|| Average Reward: {last_rewards_mean} \t epsilon: {self.epsilon:.10f}")
 
     def update_counter(self):
         self.counter += 1
@@ -239,8 +239,8 @@ def run_experiment_for_gamma(images_dir):
         model.train(training_episodes, False)
         rewards_list_for_gammas.append(model.rewards_list)
 
-    pickle.dump(rewards_list_for_gammas, open(f"{GYM_ENV}_rewards_list_for_gammas.p", "wb"))
-    rewards_list_for_gammas = pickle.load(open(f"{GYM_ENV}_rewards_list_for_gammas.p", "rb"))
+    pickle.dump(rewards_list_for_gammas, open(rewards_dir + f"{GYM_ENV}_rewards_list_for_gammas.p", "wb"))
+    rewards_list_for_gammas = pickle.load(open(rewards_dir + f"{GYM_ENV}_rewards_list_for_gammas.p", "rb"))
 
     gamma_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes + 1)))
     for i in range(len(gamma_list)):
@@ -272,8 +272,8 @@ def run_experiment_for_lr(images_dir):
         model.train(training_episodes, False)
         rewards_list_for_lrs.append(model.rewards_list)
 
-    pickle.dump(rewards_list_for_lrs, open(f"{GYM_ENV}_rewards_list_for_lrs.p", "wb"))
-    rewards_list_for_lrs = pickle.load(open(f"{GYM_ENV}_rewards_list_for_lrs.p", "rb"))
+    pickle.dump(rewards_list_for_lrs, open(rewards_dir + f"{GYM_ENV}_rewards_list_for_lrs.p", "wb"))
+    rewards_list_for_lrs = pickle.load(open(rewards_dir + f"{GYM_ENV}_rewards_list_for_lrs.p", "rb"))
 
     lr_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes + 1)))
     for i in range(len(lr_values)):
@@ -307,8 +307,8 @@ def run_experiment_for_ed(images_dir):
         model.train(training_episodes, False)
         rewards_list_for_ed.append(model.rewards_list)
 
-    pickle.dump(rewards_list_for_ed, open(f"{GYM_ENV}_rewards_list_for_ed.p", "wb"))
-    rewards_list_for_ed = pickle.load(open(f"{GYM_ENV}_rewards_list_for_ed.p", "rb"))
+    pickle.dump(rewards_list_for_ed, open(rewards_dir + f"{GYM_ENV}_rewards_list_for_ed.p", "wb"))
+    rewards_list_for_ed = pickle.load(open(rewards_dir + f"{GYM_ENV}_rewards_list_for_ed.p", "rb"))
 
     ed_rewards_pd = pd.DataFrame(index=pd.Series(range(1, training_episodes + 1)))
     for i in range(len(ed_values)):
@@ -334,6 +334,7 @@ if __name__ == '__main__':
     # Save Everything
     save_dir = "./saved_models/" + GYM_ENV + "/"
     images_dir = "./images/" + GYM_ENV + "/"
+    rewards_dir = "./rewards/" + GYM_ENV + "/"
     pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
     pathlib.Path(images_dir).mkdir(parents=True, exist_ok=True)
 

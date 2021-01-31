@@ -1,4 +1,7 @@
-# AI Learning to land a Rocket 
+# AI Learning to land a Rocket and more addendum
+
+## Addendum
+...
 
 ## Introduction
 In this article, we will cover a brief introduction to **Reinforcement Learning** and will learn about how to train a **Deep Q-Network(DQN)** agent to solve the “***Lunar Lander***” Environment in OpenAI gym.
