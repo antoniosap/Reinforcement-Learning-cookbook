@@ -1,5 +1,7 @@
 from typing import Dict, List, Tuple, Any
 import gym
+import pybullet
+import pybulletgym
 import numpy as np
 import pandas as pd
 from collections import deque
@@ -18,9 +20,9 @@ from keras.models import load_model
 import pickle
 from matplotlib import pyplot as plt
 
-GYM_ENV = 'CartPole-v1'
-# GYM_ENV = 'InvertedDoublePendulum-v2'  # NO - problemi con licenza mucojo, uase pybullet-gym
-# GYM_ENV = 'InvertedDoublePendulumMuJoCoEnv-v0'
+GYM_ENV = 'CartPole-v1'   # OK
+# GYM_ENV = 'InvertedDoublePendulum-v2'  # NO - problemi con licenza mucojo, use pybullet-gym
+# GYM_ENV = 'InvertedDoublePendulumMuJoCoEnv-v0'  # NO - qualche incompatibilita da openAI gym
 
 
 class DQN:
